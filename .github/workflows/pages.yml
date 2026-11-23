@@ -1,0 +1,33 @@
+# Deploys the gh-pages branch as-is (encrypted data + app shell). No build, no secrets, no decryption here:
+# encryption happens on the desk box before the push. Only GitHub's own Pages token (id-token) is used.
+# 2 jobs (upload, then deploy): the artifact is fully registered before deploy-pages looks it up.
+name: pages
+on:
+  push:
+    branches: [gh-pages]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: rm -rf .git .github
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: .
+  deploy:
+    needs: upload
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
